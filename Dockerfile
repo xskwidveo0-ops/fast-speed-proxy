@@ -1,1 +1,1 @@
-FROM nstsh/mtproto-proxy:latest
+FROM telegrammessenger/proxy:latest
