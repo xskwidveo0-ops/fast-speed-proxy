@@ -1,37 +1,15 @@
-const net = require('net');
+const express = require('express');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+const app = express();
 
-// عنوان خادم تلجرام الرسمي (DC4 - Europe/Middle East)
-const TELEGRAM_HOST = "149.154.167.50"; 
-const TELEGRAM_PORT = 443;
+app.get('/', (req, res) => res.send('BB1 System Active 🚀'));
 
-const server = net.createServer((socket) => {
-    socket.once('data', (data) => {
-        // حيلة لإرضاء Render: إذا جاء طلب تصفح عادي (HTTP) نرد عليه
-        if (data.toString().startsWith('GET') || data.toString().startsWith('HEAD')) {
-            socket.write('HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 9\r\n\r\nProxy BB1');
-            socket.end();
-            return;
-        }
+// تحويل البيانات لسيرفر تلجرام عبر بروكسي ويب مستقر
+app.use('/proxy', createProxyMiddleware({
+    target: 'http://149.154.167.50:443',
+    changeOrigin: true,
+    ws: true, // تفعيل الـ WebSocket وهو السر هنا
+    logLevel: 'debug'
+}));
 
-        // إذا لم يكن تصفح، فهو تلجرام -> نحوله للسيرفر الأصلي فوراً
-        const proxy = net.createConnection(TELEGRAM_PORT, TELEGRAM_HOST, () => {
-            proxy.write(data); // إرسال أول حزمة بيانات
-            socket.pipe(proxy); // ربط الخط من عندك لتلجرام
-            proxy.pipe(socket); // ربط الخط من تلجرام لعندك
-        });
-
-        proxy.on('error', (err) => {
-            console.error("Telegram Connection Error:", err.message);
-            socket.end();
-        });
-        
-        socket.on('error', (err) => {
-            console.error("Client Socket Error:", err.message);
-            proxy.end();
-        });
-    });
-});
-
-server.listen(process.env.PORT || 443, () => {
-    console.log("BB1 Bridge is connected to Telegram DC4");
-});
+app.listen(process.env.PORT || 443);
