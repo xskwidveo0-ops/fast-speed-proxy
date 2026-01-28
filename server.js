@@ -1,25 +1,37 @@
-const express = require('express');
 const net = require('net');
-const app = express();
-const port = process.env.PORT || 443;
 
-// صفحة الويب التي تضمن بقاء السيرفر Live
-app.get('/', (req, res) => {
-  res.send('<h1>BB1 Proxy: System Active</h1><p>Location: Frankfurt, Germany</p>');
+// عنوان خادم تلجرام الرسمي (DC4 - Europe/Middle East)
+const TELEGRAM_HOST = "149.154.167.50"; 
+const TELEGRAM_PORT = 443;
+
+const server = net.createServer((socket) => {
+    socket.once('data', (data) => {
+        // حيلة لإرضاء Render: إذا جاء طلب تصفح عادي (HTTP) نرد عليه
+        if (data.toString().startsWith('GET') || data.toString().startsWith('HEAD')) {
+            socket.write('HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 9\r\n\r\nProxy BB1');
+            socket.end();
+            return;
+        }
+
+        // إذا لم يكن تصفح، فهو تلجرام -> نحوله للسيرفر الأصلي فوراً
+        const proxy = net.createConnection(TELEGRAM_PORT, TELEGRAM_HOST, () => {
+            proxy.write(data); // إرسال أول حزمة بيانات
+            socket.pipe(proxy); // ربط الخط من عندك لتلجرام
+            proxy.pipe(socket); // ربط الخط من تلجرام لعندك
+        });
+
+        proxy.on('error', (err) => {
+            console.error("Telegram Connection Error:", err.message);
+            socket.end();
+        });
+        
+        socket.on('error', (err) => {
+            console.error("Client Socket Error:", err.message);
+            proxy.end();
+        });
+    });
 });
 
-const server = app.listen(port, () => {
-  console.log(`Web/Proxy bridge active on port ${port}`);
-});
-
-// محرك تحويل البيانات (Proxy Bridge)
-server.on('upgrade', (req, socket, head) => {
-  const target = net.connect(443, '127.0.0.1', () => {
-    socket.write('HTTP/1.1 101 Web Socket Protocol Handshake\r\n' +
-                 'Upgrade: WebSocket\r\n' +
-                 'Connection: Upgrade\r\n\r\n');
-    target.pipe(socket);
-    socket.pipe(target);
-  });
-  target.on('error', () => socket.end());
+server.listen(process.env.PORT || 443, () => {
+    console.log("BB1 Bridge is connected to Telegram DC4");
 });
