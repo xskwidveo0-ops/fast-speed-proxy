@@ -1,21 +1,25 @@
 const express = require('express');
-const http = require('http');
+const net = require('net');
 const app = express();
 const port = process.env.PORT || 443;
 
-// صفحة تأكيد العمل لـ Render
+// صفحة الويب التي تضمن بقاء السيرفر Live
 app.get('/', (req, res) => {
-  res.send('<h1>Proxy BB1: Status Online</h1><p>Server is running in Frankfurt.</p>');
+  res.send('<h1>BB1 Proxy: System Active</h1><p>Location: Frankfurt, Germany</p>');
 });
 
-const server = http.createServer(app);
-
-server.listen(port, () => {
-  console.log(`BB1 Server is live on port ${port}`);
-  console.log("Waiting for Telegram connections...");
+const server = app.listen(port, () => {
+  console.log(`Web/Proxy bridge active on port ${port}`);
 });
 
-// معالجة الأخطاء لضمان عدم توقف السيرفر
-process.on('uncaughtException', (err) => {
-  console.error('System Error:', err);
+// محرك تحويل البيانات (Proxy Bridge)
+server.on('upgrade', (req, socket, head) => {
+  const target = net.connect(443, '127.0.0.1', () => {
+    socket.write('HTTP/1.1 101 Web Socket Protocol Handshake\r\n' +
+                 'Upgrade: WebSocket\r\n' +
+                 'Connection: Upgrade\r\n\r\n');
+    target.pipe(socket);
+    socket.pipe(target);
+  });
+  target.on('error', () => socket.end());
 });
