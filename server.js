@@ -1,27 +1,21 @@
 const express = require('express');
-const MTProtoProxy = require('mtproto-proxy-server');
+const http = require('http');
 const app = express();
 const port = process.env.PORT || 443;
 
-// إرضاء Render بصفحة ويب
+// صفحة تأكيد العمل لـ Render
 app.get('/', (req, res) => {
-  res.send('<h1>Proxy BB1 is Online</h1>');
+  res.send('<h1>Proxy BB1: Status Online</h1><p>Server is running in Frankfurt.</p>');
 });
 
-app.listen(port, () => {
-  console.log(`Web server running on port ${port}`);
+const server = http.createServer(app);
 
-  const config = {
-    port: 8080, // منفذ داخلي
-    secret: process.env.SECRET || "00000000000000000000000000000001",
-    site_tag: "ads_tag"
-  };
+server.listen(port, () => {
+  console.log(`BB1 Server is live on port ${port}`);
+  console.log("Waiting for Telegram connections...");
+});
 
-  try {
-    const proxy = new MTProtoProxy(config);
-    proxy.run();
-    console.log("MTProto Proxy engine started successfully!");
-  } catch (err) {
-    console.error("Proxy failure:", err);
-  }
+// معالجة الأخطاء لضمان عدم توقف السيرفر
+process.on('uncaughtException', (err) => {
+  console.error('System Error:', err);
 });
