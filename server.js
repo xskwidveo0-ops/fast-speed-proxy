@@ -1,20 +1,26 @@
 const express = require('express');
-const { spawn } = require('child_process');
+const MTProtoProxy = require('mtprotoproxy');
 const app = express();
 const port = process.env.PORT || 443;
 
-// هذه الصفحة هي التي ستجعل Render يعطيك علامة Live خضراء
+// إرضاء Render بصفحة ويب حقيقية
 app.get('/', (req, res) => {
-  res.send('<h1>Proxy BB1 is Running Successfully!</h1><p>The proxy is working in the background.</p>');
+  res.send('<h1>Proxy BB1 is Live in Germany!</h1>');
 });
 
 app.listen(port, () => {
   console.log(`Web interface listening on port ${port}`);
+
+  // تشغيل البروكسي مباشرة بدون Docker
+  const proxy = new MTProtoProxy({
+    port: 444, // منفذ داخلي للبروكسي
+    secret: process.env.SECRET || "00000000000000000000000000000001",
+    users: [{ name: "user1", secret: "00000000000000000000000000000001" }]
+  });
   
-  // تشغيل محرك البروكسي الألماني
-  console.log("Starting Telegram Proxy engine...");
-  const proxy = spawn('docker', ['run', '-e', `SECRET=${process.env.SECRET}`, '-p', '443:443', 'telegrammessenger/proxy:latest']);
-  
-  proxy.stdout.on('data', (data) => console.log(`Proxy LOG: ${data}`));
-  proxy.stderr.on('data', (data) => console.error(`Proxy ERROR: ${data}`));
+  proxy.run().then(() => {
+    console.log("Telegram Proxy engine is running successfully!");
+  }).catch(err => {
+    console.error("Proxy Error:", err);
+  });
 });
