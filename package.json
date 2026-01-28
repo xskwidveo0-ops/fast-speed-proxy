@@ -8,6 +8,6 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "mtprotoproxy": "^1.2.1"
+    "mtproto-proxy-server": "^1.1.0"
   }
 }
